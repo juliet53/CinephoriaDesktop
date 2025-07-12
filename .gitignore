@@ -1,0 +1,14 @@
+# Dépendances
+/node_modules/
+package-lock.json
+
+# Dossiers de build
+/dist/
+/out/
+/build/
+
+# Fichiers exécutables ou lourds
+*.exe
+*.zip
+*.dmg
+*.tar.gz

@@ -1,0 +1,33 @@
+{
+  "name": "cinephoria-desktop",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "keywords": [],
+  "author": "Cinéphoria",
+  "license": "ISC",
+  "description": "Application de gestion d'incident de salle de cinéma",
+  "config": {
+    "forge": {
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "cinephoria_desktop"
+          }
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^25.3.1",
+    "@electron-forge/cli": "^6.0.0-beta.65",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.65"
+  },
+  "dependencies": {}
+}
