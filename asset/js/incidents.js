@@ -1,9 +1,16 @@
+import * as storage from './secureStorage.js';
 const API_URL = 'https://cinephoriaappj-2943b0896e8f.herokuapp.com/api';
-const token = localStorage.getItem('token');
+
+// 🔹 Fonction pour récupérer le token sécurisé
+async function getToken() {
+  return await storage.getToken();
+}
 
 // Chargement des incidents
 async function loadIncidents() {
   try {
+    const token = await getToken();
+
     const res = await fetch(`${API_URL}/incidents`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -41,23 +48,12 @@ async function loadIncidents() {
       const cinemaNom = incident.salle?.cinema?.nom ?? '(cinéma inconnu)';
 
       const row = document.createElement('tr');
-
-      const tdSalle = document.createElement('td');
-      tdSalle.textContent = salleNum;
-      row.appendChild(tdSalle);
-
-      const tdCinema = document.createElement('td');
-      tdCinema.textContent = cinemaNom;
-      row.appendChild(tdCinema);
-
-      const tdDescription = document.createElement('td');
-      tdDescription.textContent = incident.description;
-      row.appendChild(tdDescription);
-
-      const tdStatut = document.createElement('td');
-      tdStatut.textContent = incident.statut;
-      row.appendChild(tdStatut);
-
+      row.innerHTML = `
+        <td>${salleNum}</td>
+        <td>${cinemaNom}</td>
+        <td>${incident.description}</td>
+        <td>${incident.statut}</td>
+      `;
       list.appendChild(row);
     });
 
@@ -66,13 +62,12 @@ async function loadIncidents() {
   }
 }
 
-// Chargement des cinémas dans le select
+// Chargement des cinémas
 async function loadCinemas() {
   try {
+    const token = await getToken();
     const res = await fetch(`${API_URL}/cinemas`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     if (!res.ok) throw new Error(`Erreur HTTP : ${res.status}`);
@@ -100,21 +95,17 @@ async function loadCinemas() {
   }
 }
 
-// Chargement des salles selon le cinéma sélectionné
+// Chargement des salles par cinéma
 async function loadSallesByCinema(cinemaId) {
   try {
+    const token = await getToken();
     const salleSelect = document.getElementById('salle-select');
     salleSelect.innerHTML = '<option value="">-- Choisir une salle --</option>';
 
-    if (!cinemaId) {
-      console.log('Pas de cinéma sélectionné');
-      return;
-    }
+    if (!cinemaId) return;
 
     const res = await fetch(`${API_URL}/salles`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     if (!res.ok) throw new Error(`Erreur HTTP : ${res.status}`);
@@ -143,41 +134,28 @@ async function loadSallesByCinema(cinemaId) {
         salleSelect.appendChild(option);
       }
     });
-
   } catch (err) {
     console.error('Erreur lors du chargement des salles :', err);
   }
 }
 
-// Soumission du formulaire d'incident
+// Soumission du formulaire
 document.getElementById('incident-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
+  const token = await getToken();
   const description = document.getElementById('description').value.trim();
   const salle = document.getElementById('salle-select').value;
   const statut = document.getElementById('statut').value;
 
-  if (!salle) {
-    alert("Veuillez sélectionner une salle.");
-    return;
-  }
-
-  if (!description || /<script.*?>/i.test(description)) {
-    alert("Description invalide ou potentiellement dangereuse.");
-    return;
-  }
-
-  const body = JSON.stringify({ description, salle, statut });
-  console.log("Données envoyées:", body);
+  if (!salle) { alert("Veuillez sélectionner une salle."); return; }
+  if (!description || /<script.*?>/i.test(description)) { alert("Description invalide."); return; }
 
   try {
     const res = await fetch(`${API_URL}/incidents`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/ld+json',
-        Authorization: `Bearer ${token}`
-      },
-      body: body
+      headers: { 'Content-Type': 'application/ld+json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ description, salle, statut })
     });
 
     if (!res.ok) {
@@ -195,10 +173,9 @@ document.getElementById('incident-form').addEventListener('submit', async (e) =>
   }
 });
 
-// Mise à jour des salles lors du changement de cinéma
+// Je change mes salle en fonction du cinema
 document.getElementById('cinema-select').addEventListener('change', (e) => {
-  const selectedCinemaId = e.target.value;
-  loadSallesByCinema(selectedCinemaId);
+  loadSallesByCinema(e.target.value);
 });
 
 // Initialisation

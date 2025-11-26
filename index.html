@@ -3,79 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <title>Connexion</title>
-   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
-<body>
-  <body class="bg-light d-flex justify-content-center align-items-center vh-100">
+<body class="bg-light d-flex justify-content-center align-items-center vh-100">
 
-  <div class="card shadow p-4 rounded" style="width: 100%; max-width: 400px;">
-    <h2 class="text-center mb-4">Connexion</h2>
-    <form id="loginForm">
-      <div class="mb-3">
-        <label for="username" class="form-label">Nom d'utilisateur</label>
-        <input type="text" id="username" class="form-control" placeholder="Entrez votre nom" required>
-      </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">Mot de passe</label>
-        <input type="password" id="password" class="form-control" placeholder="Entrez votre mot de passe" required>
-      </div>
-      <div class="d-grid">
-        <button type="submit" class="btn btn-primary">Se connecter</button>
-      </div>
-    </form>
-  </div>
+<div class="card shadow p-4 rounded" style="width: 100%; max-width: 400px;">
+  <h2 class="text-center mb-4">Connexion</h2>
+  <form id="loginForm">
+    <div class="mb-3">
+      <label for="username" class="form-label">Nom d'utilisateur</label>
+      <input type="text" id="username" class="form-control" placeholder="Entrez votre nom" required>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Mot de passe</label>
+      <input type="password" id="password" class="form-control" placeholder="Entrez votre mot de passe" required>
+    </div>
+    <div class="d-grid">
+      <button type="submit" class="btn btn-primary">Se connecter</button>
+    </div>
+  </form>
+</div>
 
-  <p id="error" style="color:red;"></p>
+<p id="error" style="color:red;"></p>
 
-  <script src="api.js"></script>
-  
-  <script>
-    // Vérifie si l'utilisateur est déjà connecté et a un rôle admin ou employeur
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const roles = payload.roles || [];
-        if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_EMPLOYER')) {
-          location.href = 'public/incidents.html';
-        }
-      } catch(e) {
-        // Token invalide : on nettoie le stockage local
-        localStorage.removeItem('token');
-        localStorage.removeItem('roles');
+<script type="module">
+import * as storage from './asset/js/secureStorage.js';
+import { login } from './api.js';
+
+const form = document.getElementById('loginForm');
+
+// Vérifie si l'utilisateur est déjà connecté et a un rôle admin ou employeur
+(async () => {
+  const token = await storage.getToken();
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const roles = payload.roles || [];
+      if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_EMPLOYER')) {
+        location.href = 'public/incidents.html';
       }
+    } catch(e) {
+      // Token invalide : on nettoie le stockage sécurisé
+      await storage.removeToken();
     }
+  }
+})();
 
-    const form = document.getElementById('loginForm');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+  const result = await login(username, password);
+  if (result && result.token) {
+    const roles = JSON.parse(atob(result.token.split('.')[1])).roles;
 
-      const result = await login(username, password);
-      if (result && result.token) {
-        const roles = parseJwt(result.token).roles;
+    // Sauvegarde token dans Keytar (secure storage)
+    await storage.setToken(result.token);
 
-        // Sauvegarde token + roles
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('roles', JSON.stringify(roles));
-
-        // Redirige seulement pour admin ou employeur
-        if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_EMPLOYER')) {
-          location.href = 'public/incidents.html';
-        } else {
-          document.getElementById('error').textContent = "Accès refusé : rôle insuffisant";
-        }
-      } else {
-        document.getElementById('error').textContent = "Échec de la connexion";
-      }
-    });
-
-    function parseJwt(token) {
-      const base64 = token.split('.')[1];
-      return JSON.parse(atob(base64));
+    // Redirige seulement pour admin ou employeur
+    if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_EMPLOYER')) {
+      location.href = 'public/incidents.html';
+    } else {
+      document.getElementById('error').textContent = "Accès refusé : rôle insuffisant";
     }
-  </script>
+  } else {
+    document.getElementById('error').textContent = "Échec de la connexion";
+  }
+});
+</script>
 </body>
 </html>

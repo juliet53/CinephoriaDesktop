@@ -1,33 +1,40 @@
-export function protectPage(allowedRoles = []) {
-  const token = localStorage.getItem('token');
-  const roles = JSON.parse(localStorage.getItem('roles') || '[]');
+import * as storage from './secureStorage.js';
 
-  // Pas connecté
-  if (!token) {
-    window.location.href = 'index.html';
-    return;
-  }
+export async function protectPage(allowedRoles = []) {
+  try {
+    const token = await storage.getToken();
 
-  // Vérifie si le token est expiré
-  if (isTokenExpired(token)) {
-    alert("Session expirée. Veuillez vous reconnecter.");
-    localStorage.removeItem('token');
-    localStorage.removeItem('roles');
-    window.location.href = 'index.html';
-    return;
-  }
+    // Pas connecté donc Go a la connexion
+    if (!token) {
+      window.location.href = 'index.html';
+      return;
+    }
 
-  // Si aucun rôle requis → juste connecté = OK
-  if (allowedRoles.length === 0) return;
+    // Vérifie si le token est expiré
+    if (isTokenExpired(token)) {
+      alert("Session expirée. Veuillez vous reconnecter.");
+      await storage.removeToken();
+      window.location.href = 'index.html';
+      return;
+    }
 
-  // Sinon, on vérifie les rôles
-  const hasAccess = roles.some(role => allowedRoles.includes(role));
-  if (!hasAccess) {
-    alert("Accès refusé.");
+    // Aucun rôle requis
+    if (allowedRoles.length === 0) return;
+
+    // Vérifie les rôles
+    const roles = getRolesFromToken(token);
+    const hasAccess = roles.some(role => allowedRoles.includes(role));
+    if (!hasAccess) {
+      alert("Accès refusé.");
+      window.location.href = 'index.html';
+    }
+  } catch (e) {
+    console.error('Erreur lors de la protection de la page', e);
     window.location.href = 'index.html';
   }
 }
 
+// Vérifie l’expiration du token
 function isTokenExpired(token) {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
@@ -36,5 +43,16 @@ function isTokenExpired(token) {
   } catch (e) {
     console.error('Token invalide ou illisible', e);
     return true;
+  }
+}
+
+// Récupère les rôles depuis le token
+function getRolesFromToken(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.roles || [];
+  } catch (e) {
+    console.error('Impossible de lire les rôles du token', e);
+    return [];
   }
 }

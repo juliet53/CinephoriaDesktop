@@ -1,8 +1,17 @@
-const API_URL = 'https://cinephoriaappj-2943b0896e8f.herokuapp.com/api';
-const token = localStorage.getItem('token');
+import * as storage from './secureStorage.js';
 
+const API_URL = 'https://cinephoriaappj-2943b0896e8f.herokuapp.com/api';
+
+// Récup token
+async function getToken() {
+  return await storage.getToken();
+}
+
+// les incidents
 async function loadIncidents() {
   try {
+    const token = await getToken();
+
     const res = await fetch(`${API_URL}/incidents`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -64,14 +73,12 @@ async function loadIncidents() {
       // Actions (Modifier / Supprimer)
       const tdActions = document.createElement('td');
 
-      // Bouton Modifier
       const btnEdit = document.createElement('button');
       btnEdit.className = 'btn btn-sm btn-warning me-2';
       btnEdit.textContent = 'Modifier';
       btnEdit.addEventListener('click', () => editIncident(incident['@id']));
       tdActions.appendChild(btnEdit);
 
-      // Bouton Supprimer
       const btnDelete = document.createElement('button');
       btnDelete.className = 'btn btn-sm btn-danger';
       btnDelete.textContent = 'Supprimer';
@@ -79,7 +86,6 @@ async function loadIncidents() {
       tdActions.appendChild(btnDelete);
 
       row.appendChild(tdActions);
-
       list.appendChild(row);
     });
 
@@ -88,12 +94,13 @@ async function loadIncidents() {
   }
 }
 
+// Supp un incident
 async function deleteIncident(id) {
   if (!confirm("Voulez-vous vraiment supprimer cet incident ?")) return;
 
   try {
-    // Assure-toi que id commence par /api ou la bonne route relative
-    const url = id.startsWith('http') ? id : `https://cinephoriaappj-2943b0896e8f.herokuapp.com${id}`;
+    const token = await getToken();
+    const url = id.startsWith('http') ? id : `${API_URL}${id}`;
 
     const res = await fetch(url, {
       method: 'DELETE',
@@ -112,9 +119,11 @@ async function deleteIncident(id) {
   }
 }
 
+// Modifier un incident
 function editIncident(id) {
-  localStorage.setItem('incidentToEdit', id);
+  localStorage.setItem('incidentToEdit', id); 
   window.location.href = '../public/modifier.html';
 }
+
 
 loadIncidents();

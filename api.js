@@ -1,6 +1,6 @@
 const API_URL = 'https://cinephoriaappj-2943b0896e8f.herokuapp.com/api'; 
 
-async function login(username, password) {
+export async function login(username, password) {
   try {
     const res = await fetch(`${API_URL}/login_check`, {
       method: 'POST',

@@ -28,13 +28,17 @@
     </form>
   </div>
 
-
-  <!-- ⚠️ Protection d'accès via token et rôles -->
+  
   <script type="module">
     import { protectPage } from '../asset/js/auth.js';
-    protectPage(['ROLE_ADMIN', 'ROLE_EMPLOYER']);
+
+    // protection avec Keytar 
+    (async () => {
+      await protectPage(['ROLE_ADMIN', 'ROLE_EMPLOYER']);
+    })();
   </script>
   
-  <script src="../asset/js/modifier.js"></script>
+  
+  <script type="module" src="../asset/js/modifier.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
+import * as storage from './secureStorage.js';
 const API_URL = 'https://cinephoriaappj-2943b0896e8f.herokuapp.com/api';
 
-// 🔐 Fonction d'échappement XSS
+// XSS
 function escapeHTML(str) {
   if (!str) return '';
   return String(str)
@@ -11,16 +12,15 @@ function escapeHTML(str) {
     .replace(/'/g, '&#039;');
 }
 
-// 🎬 Chargement des cinémas
+// les cinemas
 async function loadCinemas() {
-  const token = localStorage.getItem('token'); // <-- Récupérer ici
-  console.log('Token envoyé:', token);
+  const token = await storage.getToken();
   if (!token) {
-    console.error('Aucun token. Redirection vers login.');
     alert('Veuillez vous connecter.');
     window.location.href = 'index.html';
     return;
   }
+
   try {
     const res = await fetch(`${API_URL}/cinemas`, {
       headers: { 
@@ -28,10 +28,8 @@ async function loadCinemas() {
         'Content-Type': 'application/json'
       }
     });
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Erreur HTTP : ${res.status} - ${errorText}`);
-    }
+
+    if (!res.ok) throw new Error(`Erreur HTTP : ${res.status}`);
     const data = await res.json();
     const cinemas = Array.isArray(data['hydra:member'])
       ? data['hydra:member']
@@ -40,6 +38,7 @@ async function loadCinemas() {
         : Array.isArray(data)
           ? data
           : [];
+
     const select = document.getElementById('cinema-select');
     select.innerHTML = '<option value="">-- Choisir un cinéma --</option>';
     cinemas.forEach(cinema => {
@@ -48,6 +47,7 @@ async function loadCinemas() {
       option.textContent = escapeHTML(cinema.nom);
       select.appendChild(option);
     });
+
   } catch (err) {
     console.error('Erreur lors du chargement des cinémas :', err);
     alert('Erreur lors du chargement des cinémas : ' + err.message);
@@ -58,15 +58,14 @@ async function loadCinemas() {
 async function loadSallesByCinema(cinemaId) {
   if (!cinemaId) return;
 
+  const token = await storage.getToken();
+  if (!token) {
+    alert('Token manquant, veuillez vous reconnecter.');
+    window.location.href = 'index.html';
+    return;
+  }
+
   try {
-    const token = localStorage.getItem('token'); // <-- Récupérer ici aussi !
-
-    if (!token) {
-      alert('Token manquant, veuillez vous reconnecter.');
-      window.location.href = 'index.html';
-      return;
-    }
-
     const salleSelect = document.getElementById('salle-select');
     salleSelect.innerHTML = '<option value="">-- Choisir une salle --</option>';
 
@@ -106,42 +105,32 @@ async function loadSallesByCinema(cinemaId) {
   }
 }
 
-// 📝 Soumission du formulaire
+// Form
 document.getElementById('incident-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const description = document.getElementById('description').value.trim();
-  const salle = document.getElementById('salle-select').value;
-  const statut = document.getElementById('statut').value;
-
-  if (!salle) {
-    alert("Veuillez sélectionner une salle.");
-    return;
-  }
-
-  if (!description || /<script.*?>/i.test(description)) {
-    alert("Description invalide ou potentiellement dangereuse.");
-    return;
-  }
-
-  const token = localStorage.getItem('token'); 
-
+  const token = await storage.getToken();
   if (!token) {
     alert('Token manquant, veuillez vous reconnecter.');
     window.location.href = '../index.html';
     return;
   }
 
-  const body = JSON.stringify({ description, salle, statut });
+  const description = document.getElementById('description').value.trim();
+  const salle = document.getElementById('salle-select').value;
+  const statut = document.getElementById('statut').value;
+
+  if (!salle) { alert("Veuillez sélectionner une salle."); return; }
+  if (!description || /<script.*?>/i.test(description)) { alert("Description invalide."); return; }
 
   try {
     const res = await fetch(`${API_URL}/incidents`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/ld+json',
-        Authorization: `Bearer ${token}`
+      headers: { 
+        'Content-Type': 'application/ld+json', 
+        Authorization: `Bearer ${token}` 
       },
-      body
+      body: JSON.stringify({ description, salle, statut })
     });
 
     if (!res.ok) {
@@ -160,17 +149,19 @@ document.getElementById('incident-form').addEventListener('submit', async (e) =>
   }
 });
 
-// 🎛️ Changement de cinéma → recharger les salles
+// change de cine je recharge les salles
 document.getElementById('cinema-select').addEventListener('change', (e) => {
-  const selectedCinemaId = e.target.value;
-  loadSallesByCinema(selectedCinemaId);
+  loadSallesByCinema(e.target.value);
 });
 
-// Fonction logout (supprime token et redirige)
-function logout() {
-  localStorage.removeItem('token');
+// dEconnexion
+async function logout() {
+  await storage.removeToken();
   window.location.href = '../index.html';
 }
+
+// bouton logout
+document.getElementById('logout-btn').addEventListener('click', logout);
 
 // 🚀 Initialisation
 loadCinemas();

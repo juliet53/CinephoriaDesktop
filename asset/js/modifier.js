@@ -1,8 +1,9 @@
-const API_URL = 'https://cinephoriaappj-2943b0896e8f.herokuapp.com/api';
-const token = localStorage.getItem('token');
-let incidentId = localStorage.getItem('incidentToEdit');
+import * as storage from './secureStorage.js';
 
-// 🔐 Fonction pour échapper les caractères HTML dangereux
+const API_URL = 'https://cinephoriaappj-2943b0896e8f.herokuapp.com/api';
+let incidentId = localStorage.getItem('incidentToEdit'); 
+
+// Fonction pour échappe le html
 function escapeHTML(str) {
   return str?.replace(/&/g, '&amp;')
              .replace(/</g, '&lt;')
@@ -11,16 +12,18 @@ function escapeHTML(str) {
              .replace(/'/g, '&#039;') || '';
 }
 
-// ✅ Nettoyage du chemin s'il commence par /api/
+// Nettoyage du chemin s'il commence par /api/
 if (incidentId && incidentId.startsWith('/')) {
   incidentId = incidentId.replace(/^\/api\//, '');
 }
 
-// 📦 Chargement des données de l'incident à modifier
+
 async function loadIncident() {
   if (!incidentId) return;
 
   try {
+    const token = await storage.getToken(); 
+
     const res = await fetch(`${API_URL}/${incidentId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -40,20 +43,21 @@ async function loadIncident() {
   }
 }
 
-// 📝 Gestion de la soumission du formulaire
+// envoie form
 document.getElementById('edit-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const description = document.getElementById('description').value.trim();
   const statut = document.getElementById('statut').value;
 
-  // 🔍 Sécurité XSS : on empêche le contenu potentiellement dangereux
   if (!description || /<script.*?>/i.test(description)) {
     alert("Description invalide ou potentiellement dangereuse.");
     return;
   }
 
   try {
+    const token = await storage.getToken(); 
+
     const res = await fetch(`${API_URL}/${incidentId}`, {
       method: 'PATCH',
       headers: {
@@ -79,5 +83,5 @@ document.getElementById('edit-form').addEventListener('submit', async (e) => {
   }
 });
 
-// 🚀 Chargement initial
+
 loadIncident();
