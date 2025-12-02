@@ -54,7 +54,7 @@ async function loadCinemas() {
   }
 }
 
-// 🏟️ Chargement des salles selon le cinéma
+// salles selon le cinéma
 async function loadSallesByCinema(cinemaId) {
   if (!cinemaId) return;
 

@@ -58,10 +58,10 @@ form.addEventListener('submit', async (e) => {
   if (result && result.token) {
     const roles = JSON.parse(atob(result.token.split('.')[1])).roles;
 
-    // Sauvegarde token dans Keytar (secure storage)
+    // Sauvegarde token avec Keytar dans le secure storage
     await storage.setToken(result.token);
 
-    // Redirige seulement pour admin ou employeur
+    // Redirige seulement pour admin ou employer
     if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_EMPLOYER')) {
       location.href = 'public/incidents.html';
     } else {
